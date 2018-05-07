@@ -1,0 +1,31 @@
+{
+  "name": "iotagent-rabbitmq",
+  "version": "1.0.0",
+  "description": "IOTA for AMQP devices ",
+  "scripts": {
+    "start": "node build/main.js",
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tprimini/iotagent-rabbitmq.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tprimini/iotagent-rabbitmq/issues"
+  },
+  "homepage": "https://github.com/tprimini/iotagent-rabbitmq#readme",
+  "devDependencies": {
+    "@types/dojot-iotagent": "https://github.com/dojot/iotagent-nodejs",
+    "@types/express": "^4.11.1",
+    "@types/node": "^0.12.17"
+  },
+  "dependencies": {
+    "dojot-iotagent": "https://github.com/dojot/iotagent-nodejs",
+    "tsconfig": "^7.0.0",
+    "typescript": "^2.5.3",
+    "amqplib": "^0.5.2"
+  }
+}
