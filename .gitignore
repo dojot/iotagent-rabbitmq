@@ -1,0 +1,10 @@
+/node_modules/
+.vscode
+docs/build
+/build/
+.settings
+.classpath
+.project
+.metadata
+npm-debug.log
+.idea/
