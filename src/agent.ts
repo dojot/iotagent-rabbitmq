@@ -135,13 +135,16 @@ class Agent {
     try {
       this.consumerConnection.createChannel((err: any, ch: any) => {
         if (this.consumerConnCloseOnErr(err)) {
-            return;
+          return;
         }
         ch.on("error", function(err: any) {
-            console.error("[AMQP-Consumer] channel error", err.message);
+          console.error("[AMQP-Consumer] channel error", err.message);
         });
-        ch.on("close", function() {
-            console.log("[AMQP-Consumer] channel closed");
+        ch.on("close", () => {
+          console.log("[AMQP-Consumer] channel closed");
+          if (this.consumerConnCloseOnErr("Channel closed")) {
+            return;
+          }
         });
         ch.assertExchange(config.RABBITMQ_INBOUND_EXCHANGE, 'topic', {durable: true});
         ch.assertQueue(config.RABBITMQ_INBOUND_QUEUE, {autoDelete: false, durable: true, arguments: {"x-message-ttl": 20000, "x-max-length": 100000, "x-max-length-bytes": 512000000, "x-overflow": "reject-publish"}}, (err: any, q: any) => {
@@ -150,12 +153,16 @@ class Agent {
           }
           ch.bindQueue(config.RABBITMQ_INBOUND_QUEUE, config.RABBITMQ_INBOUND_EXCHANGE, "#");
           ch.consume(config.RABBITMQ_INBOUND_QUEUE, (msg: any) => {
-            this.handle_data(msg.fields.routingKey, msg.content);
+            try {
+              this.handle_data(msg.fields.routingKey, msg.content);
+            } catch (e) {
+              console.log("Exception: ", e);
+            }
           }, {noAck: true});
         });
       });
     } catch (e) {
-      console.log("[AMQP-Consumer] channel error: %s", e);
+      console.log("[AMQP-Consumer] exception: %s", e);
     }
   }
 
@@ -163,16 +170,19 @@ class Agent {
     try {
       this.producerConnection.createChannel((err: any, ch: any) => {
         if (this.producerConnCloseOnErr(err)) {
-            this.isProducerReady = false;
-            return;
+          this.isProducerReady = false;
+          return;
         }
         ch.on("error", (err: any) => {
-            this.isProducerReady = false;
-            console.error("[AMQP-Producer] channel error", err.message);
+          this.isProducerReady = false;
+          console.error("[AMQP-Producer] channel error", err.message);
         });
         ch.on("close", () => {
-            this.isProducerReady = false;
-            console.log("[AMQP-Producer] channel closed");
+          this.isProducerReady = false;
+          console.log("[AMQP-Producer] channel closed");
+          if (this.producerConnCloseOnErr("Channel closed")) {
+            return;
+          }
         });
         ch.assertExchange(config.RABBITMQ_OUTBOUND_EXCHANGE, 'direct', {durable: true});
         this.producerChannel = ch;
@@ -180,7 +190,7 @@ class Agent {
       });
     } catch (e) {
       this.isProducerReady = false;
-      console.log("[AMQP-Producer] channel error: %s", e);
+      console.log("[AMQP-Producer] exception: %s", e);
     }
   }
 
@@ -189,6 +199,14 @@ class Agent {
     setTimeout(() => {
         console.log("[AMQP-Consumer] reconnecting...");
         this.start_amqp_consumer_connection();
+    }, 1000);
+  }
+
+  reconnect_consumer_channel() {
+    var that = this;
+    setTimeout(() => {
+        console.log("[AMQP-Consumer] reconnecting channel...");
+        this.start_producer_binding();
     }, 1000);
   }
 
