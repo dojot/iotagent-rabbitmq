@@ -202,14 +202,6 @@ class Agent {
     }, 1000);
   }
 
-  reconnect_consumer_channel() {
-    var that = this;
-    setTimeout(() => {
-        console.log("[AMQP-Consumer] reconnecting channel...");
-        this.start_producer_binding();
-    }, 1000);
-  }
-
   reconnect_producer() {
     var that = this;
     setTimeout(() => {
