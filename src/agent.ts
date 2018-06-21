@@ -155,7 +155,7 @@ class Agent {
         ch.assertExchange(config.RABBITMQ_INBOUND_EXCHANGE, 'topic', {durable: true});
         ch.assertQueue(config.RABBITMQ_INBOUND_QUEUE,
                        {
-                         autoDelete: false, 
+                         autoDelete: false,
                          durable: true,
                          arguments: {
                            "x-message-ttl": 20000,

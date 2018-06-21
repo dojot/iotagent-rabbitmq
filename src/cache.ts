@@ -39,7 +39,7 @@ class CacheHandler {
       delete this.dojot_to_device_amqp_routing_key[dojot_tenant + ':' + dojot_device_id];
       delete this.device_amqp_routing_key_to_dojot[device_amqp_routing_key];
 
-      console.log("Removing correlation dojot [%s] <-> [%s] amqp routing key", 
+      console.log("Removing correlation dojot [%s] <-> [%s] amqp routing key",
                   dojot_tenant + ':' + dojot_device_id, device_amqp_routing_key);
     }
 
