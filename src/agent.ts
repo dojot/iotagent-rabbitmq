@@ -14,6 +14,7 @@ config.RABBITMQ_DEFAULT_VHOST = process.env.RABBITMQ_DEFAULT_VHOST || "/";
 config.RABBITMQ_INBOUND_EXCHANGE = process.env.RABBITMQ_INBOUND_EXCHANGE || "inbound.dojot.exchange"
 config.RABBITMQ_INBOUND_QUEUE = process.env.RABBITMQ_INBOUND_QUEUE || "inbound.dojot.queue"
 config.RABBITMQ_OUTBOUND_EXCHANGE = process.env.RABBITMQ_OUTBOUND_EXCHANGE || "outbound.dojot.exchange"
+config.SERIALIZATION_FORMAT = process.env.SERIALIZATION_FORMAT || "json"
 
 /**
  * RabbitMQ IoT Agent Class
@@ -62,8 +63,10 @@ class Agent {
   }
 
   start_amqp_consumer_connection() {
-    let connection_url = "amqp://" + config.RABBITMQ_DEFAULT_USER + ":" + config.RABBITMQ_DEFAULT_PASS + "@" + config.RABBITMQ_HOST + ":" + config.RABBITMQ_PORT + "/" + config.RABBITMQ_DEFAULT_VHOST + "?heartbeat=30";
-
+    let connection_url = "amqp://" + config.RABBITMQ_DEFAULT_USER + ":" +
+                          config.RABBITMQ_DEFAULT_PASS + "@" +
+                          config.RABBITMQ_HOST + ":" + config.RABBITMQ_PORT +
+                          "/" + config.RABBITMQ_DEFAULT_VHOST + "?heartbeat=30";
     console.log("[AMQP-Consumer] connection url = ", connection_url);
 
     try {
@@ -95,7 +98,10 @@ class Agent {
   }
 
   start_amqp_producer_connection() {
-    let connection_url = "amqp://" + config.RABBITMQ_DEFAULT_USER + ":" + config.RABBITMQ_DEFAULT_PASS + "@" + config.RABBITMQ_HOST + ":" + config.RABBITMQ_PORT + "/" + config.RABBITMQ_DEFAULT_VHOST + "?heartbeat=30";
+    let connection_url = "amqp://" + config.RABBITMQ_DEFAULT_USER + ":" +
+                          config.RABBITMQ_DEFAULT_PASS + "@" +
+                          config.RABBITMQ_HOST + ":" + config.RABBITMQ_PORT +
+                          "/" + config.RABBITMQ_DEFAULT_VHOST + "?heartbeat=30";
 
     console.log("[AMQP-Producer] connection url = ", connection_url);
 
@@ -147,7 +153,18 @@ class Agent {
           }
         });
         ch.assertExchange(config.RABBITMQ_INBOUND_EXCHANGE, 'topic', {durable: true});
-        ch.assertQueue(config.RABBITMQ_INBOUND_QUEUE, {autoDelete: false, durable: true, arguments: {"x-message-ttl": 20000, "x-max-length": 100000, "x-max-length-bytes": 512000000, "x-overflow": "reject-publish"}}, (err: any, q: any) => {
+        ch.assertQueue(config.RABBITMQ_INBOUND_QUEUE,
+                       {
+                         autoDelete: false, 
+                         durable: true,
+                         arguments: {
+                           "x-message-ttl": 20000,
+                           "x-max-length": 100000,
+                           "x-max-length-bytes": 512000000,
+                           "x-overflow": "reject-publish"
+                         }
+                       },
+                       (err: any, q: any) => {
           if (this.consumerConnCloseOnErr(err)) {
             return;
           }
@@ -261,7 +278,7 @@ class Agent {
                 console.log(util.inspect(device_info, { depth: null}));
                 let device_amqp_routing_key = this.get_device_amqp_routing_key(device_info);
                 if (device_amqp_routing_key !== '') {
-                  this.cache.correlate_dojot_and_device_amqp_routing_key(device_id, device_amqp_routing_key);
+                  this.cache.correlate_dojot_and_device_amqp_routing_key(t, device_id, device_amqp_routing_key);
                 }
               })
             }
@@ -276,22 +293,6 @@ class Agent {
   }
 
   handle_data(routingKey: string, payload: Buffer) {
-    console.log("routingKey[%s] -> payload[%s]", routingKey, payload.toString());
-
-    // get device from cache
-    let dojot_device_id = this.cache.get_dojot_device_id(routingKey);
-
-    console.log("Retrieving dojot device id [%s] <-> [%s] from device amqp routing key", dojot_device_id, routingKey);
-
-    // TODO: some Dojot necessary steps:
-    // let timestamp = new Date(timestamp_in_payload_var*1000).toISOString();
-    // this.iota.listTenants()
-    //   .then((tenants: any) => {
-    //     for (let t of tenants) {
-    //       this.iota.updateAttrs(dojot_device_id, t, body, {});
-    //     }
-    //   })
-    // .catch((error: any) => {console.error(error)});
   }
 
   on_create_device(event: any) {
@@ -299,7 +300,9 @@ class Agent {
 
     let device_amqp_routing_key = this.get_device_amqp_routing_key(event.data);
     if (device_amqp_routing_key !== '') {
-      this.cache.correlate_dojot_and_device_amqp_routing_key(event.data.id, device_amqp_routing_key);
+      this.cache.correlate_dojot_and_device_amqp_routing_key(event.meta.service,
+                                                             event.data.id,
+                                                             device_amqp_routing_key);
     }
   }
 
@@ -308,7 +311,9 @@ class Agent {
 
     let device_amqp_routing_key = this.get_device_amqp_routing_key(event.data);
     if (device_amqp_routing_key !== '') {
-      this.cache.correlate_dojot_and_device_amqp_routing_key(event.data.id, device_amqp_routing_key);
+      this.cache.correlate_dojot_and_device_amqp_routing_key(event.meta.service,
+                                                             event.data.id,
+                                                             device_amqp_routing_key);
     }
   }
 
@@ -317,10 +322,63 @@ class Agent {
 
     let device_amqp_routing_key = this.get_device_amqp_routing_key(event.data);
     if (device_amqp_routing_key !== '') {
-      this.cache.remove_correlation_dojot_and_device_amqp_routing_key(event.data.id, device_amqp_routing_key);
+      this.cache.remove_correlation_dojot_and_device_amqp_routing_key(event.meta.service,
+                                                                      event.data.id,
+                                                                      device_amqp_routing_key);
     }
   }
 
 }
 
-export { Agent };
+class AgentBinary extends Agent {
+  constructor() {
+    console.log("Initializing AgentBinary");
+    super();
+  }
+
+  handle_data(routingKey: string, payload: Buffer) {
+    console.log("routingKey[%s] -> payload[%s]", routingKey, payload.toString());
+
+    // get device from cache
+    let dojot_device = this.cache.get_dojot_device_id(routingKey);
+
+    console.log("Retrieving dojot device id [%s:%s] <-> [%s] from device amqp routing key",
+                dojot_device.tenant, dojot_device.device_id, routingKey);
+
+    //converts the binary data to base64 string
+    let jsonObj = { "payload": payload.toString('base64') };
+    this.iota.updateAttrs(dojot_device.device_id, dojot_device.tenant, jsonObj, {})
+  }
+
+}
+
+class AgentJson extends Agent {
+  constructor() {
+    console.log("Initializing AgentJson");
+    super();
+  }
+
+  handle_data(routingKey: string, payload: Buffer) {
+    console.log("routingKey[%s] -> payload[%s]", routingKey, payload.toString());
+
+    // get device from cache
+    let dojot_device = this.cache.get_dojot_device_id(routingKey);
+
+    console.log("Retrieving dojot device id [%s:%s] <-> [%s] from device amqp routing key",
+                dojot_device.tenant, dojot_device.device_id, routingKey);
+
+    let jsonObj = JSON.parse(payload.toString());
+    this.iota.updateAttrs(dojot_device.device_id, dojot_device.tenant, jsonObj, {})
+  }
+}
+
+function getAgent() : Agent {
+   if (config.SERIALIZATION_FORMAT === 'json') {
+     return new AgentJson();
+   } else if (config.SERIALIZATION_FORMAT === 'binary') {
+    return new AgentBinary();
+   }
+
+   throw TypeError("Unsupported serialization format: " + config.SERIALIZATION_FORMAT);
+}
+export { getAgent, Agent };
