@@ -1,6 +1,6 @@
 import fs = require("fs");
 import util = require("util");
-import {Agent} from "./agent";
+import {getAgent, Agent} from "./agent";
 
 function main() {
   if (process.argv.length != 2) {
@@ -8,7 +8,7 @@ function main() {
     return;
   }
 
-  let agent = new Agent();
+  let agent : Agent = getAgent();
   agent.start();
 }
 
