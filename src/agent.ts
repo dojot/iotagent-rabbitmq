@@ -290,6 +290,7 @@ class Agent {
     this.iota.on('device.create', (event: any) => { this.on_create_device(event) });
     this.iota.on('device.update', (event: any) => { this.on_update_device(event) });
     this.iota.on('device.remove', (event: any) => { this.on_delete_device(event) });
+    this.iota.on('device.configure', (event: any) => { this.on_actuate_device(event) });
   }
 
   handle_data(routingKey: string, payload: Buffer) {
@@ -328,26 +329,16 @@ class Agent {
     }
   }
 
-}
+  on_actuate_device(event: any) {
+    console.log('actuating on device [%s]', event.data.id);
 
-class AgentBinary extends Agent {
-  constructor() {
-    console.log("Initializing AgentBinary");
-    super();
-  }
+    let device_amqp_routing_key = this.cache.get_device_amqp_routing_key(event.meta.service, event.data.id);
 
-  handle_data(routingKey: string, payload: Buffer) {
-    console.log("routingKey[%s] -> payload[%s]", routingKey, payload.toString());
-
-    // get device from cache
-    let dojot_device = this.cache.get_dojot_device_id(routingKey);
-
-    console.log("Retrieving dojot device id [%s:%s] <-> [%s] from device amqp routing key",
-                dojot_device.tenant, dojot_device.device_id, routingKey);
-
-    //converts the binary data to base64 string
-    let jsonObj = { "payload": payload.toString('base64') };
-    this.iota.updateAttrs(dojot_device.device_id, dojot_device.tenant, jsonObj, {})
+    if (device_amqp_routing_key !== '') {
+      let message = JSON.stringify(event.data)
+      console.log('publishing to [%s] actuating message: %s', device_amqp_routing_key, message)
+      this.publish(device_amqp_routing_key, message);
+    }
   }
 
 }
@@ -375,8 +366,6 @@ class AgentJson extends Agent {
 function getAgent() : Agent {
    if (config.SERIALIZATION_FORMAT === 'json') {
      return new AgentJson();
-   } else if (config.SERIALIZATION_FORMAT === 'binary') {
-    return new AgentBinary();
    }
 
    throw TypeError("Unsupported serialization format: " + config.SERIALIZATION_FORMAT);
