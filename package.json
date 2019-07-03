@@ -5,7 +5,9 @@
   "scripts": {
     "start": "node build/main.js",
     "build": "tsc",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "snyk-protect": "snyk protect",
+    "prepublish": "npm run snyk-protect"
   },
   "repository": {
     "type": "git",
@@ -26,6 +28,8 @@
     "dojot-iotagent": "https://github.com/dojot/iotagent-nodejs",
     "tsconfig": "^7.0.0",
     "typescript": "^2.5.3",
-    "amqplib": "^0.5.2"
-  }
+    "amqplib": "^0.5.2",
+    "snyk": "^1.189.0"
+  },
+  "snyk": true
 }
