@@ -13,6 +13,7 @@
     "url": "git+https://github.com/dojot/iotagent-rabbitmq.git"
   },
   "author": "Raul Negreiros",
+  "license": "Apache-2.0",
   "licenses": [
     {
       "type": "Apache-2.0",
