@@ -26,6 +26,6 @@
     "dojot-iotagent": "https://github.com/dojot/iotagent-nodejs",
     "tsconfig": "^7.0.0",
     "typescript": "^2.5.3",
-    "amqplib": "^0.5.2"
+    "amqplib": "^0.7.1"
   }
 }
